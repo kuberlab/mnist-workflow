@@ -101,9 +101,7 @@ spec:
         limits:
           cpu: 1000m
           memory: 1Gi
-      volumes:
-      - name: src
-      - name: training
+      default_volume_mapping: true
   - name: hparameters
     resources:
     - name: worker
