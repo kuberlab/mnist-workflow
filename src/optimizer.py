@@ -24,7 +24,7 @@ def main():
     m = client.Client()
     app = m.apps.get()
     task = app.task('train')
-    task.resource('worker')['command'] = 'python mnist.py --training_iteration=1000 --version 0'
+    task.resource('worker')['command'] = 'python mnist.py --training_iteration=1000 --model_version 0'
     spec = (optimizator.ParamSpecBuilder().resource('worker')
             .param('fully_neurons')
             .int()
