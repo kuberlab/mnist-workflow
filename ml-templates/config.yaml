@@ -1,0 +1,218 @@
+kind: MLApp
+metadata:
+  name: mnist
+spec:
+  package_manager: "pip3"
+  default_mount_path: "/notebooks"
+  packages:
+    - names:
+      {{- range $i, $value := .packages }}
+      - "{{ $value }}"
+      {{- end }}
+      manager: "pip3"
+  tasks:
+  - name: dataset
+    resources:
+    - name: run
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: "kuberlab/tensorflow:gpu-36-1.5.0-full"
+        cpu: "kuberlab/tensorflow:cpu-36-1.5.0-full"
+      command: python dataset.py --catalog_name mnist --version 1.0.0
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 0
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      volumes:
+      - name: src
+  - name: images
+    resources:
+    - name: run
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: "kuberlab/tensorflow:gpu-36-1.5.0-full"
+        cpu: "kuberlab/tensorflow:cpu-36-1.5.0-full"
+      command: python extract.py --catalog_name mnist --version 1.0.0-test
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 0
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      volumes:
+      - name: src
+      - name: data
+  - name: train
+    resources:
+    - name: worker
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: "kuberlab/tensorflow:gpu-36-1.5.0-full"
+        cpu: "kuberlab/tensorflow:cpu-36-1.5.0-full"
+      command: python mnist.py --training_iteration=1000
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 1
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+      default_volume_mapping: true
+  - name: export
+    resources:
+    - name: run
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: "kuberlab/tensorflow:gpu-36-1.5.0-full"
+        cpu: "kuberlab/tensorflow:cpu-36-1.5.0-full"
+      command: python mnist.py --mode export --build 1
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 0
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      volumes:
+      - name: src
+      - name: training
+  - name: hparameters
+    resources:
+    - name: worker
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: "kuberlab/tensorflow:gpu-36-1.5.0-full"
+        cpu: "kuberlab/tensorflow:cpu-36-1.5.0-full"
+      command: python optimizer.py --init_steps 3 --parallel 1 --iterations 10 --method skopt
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 0
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      volumes:
+      - name: src
+  uix:
+  - name: jupyter
+    displayName: Jupyter
+    images:
+      gpu: "kuberlab/tensorflow:gpu-36-1.5.0-full"
+      cpu: "kuberlab/tensorflow:cpu-36-1.5.0-full"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+    ports:
+    - port: 8888
+      targetPort: 8888
+      protocol: TCP
+      name: http
+    default_volume_mapping: true
+  - name: tensorboard
+    displayName: Tensorboard
+    command: "tensorboard --logdir=$TRAINING_DIR"
+    images:
+      cpu: "kuberlab/tensorflow:cpu-36-1.5.0-base"
+    ports:
+    - port: 6006
+      targetPort: 6006
+      protocol: TCP
+      name: http
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    volumes:
+    - name: training
+  serving:
+  - name: serving
+    displayName: Serving
+    replicas: 1
+    images:
+      gpu: "kuberlab/tensorflow-serving:gpu-27-1.5.0"
+      cpu: "kuberlab/tensorflow-serving:cpu-27-1.5.0"
+    command: "tensorflow_model_server --port=9000 --model_name=mnist --model_base_path=$checkpoint_path"
+    resources:
+      accelerators:
+        gpu: 0
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    ports:
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: http
+    spec:
+      params:
+      - name: images
+        type: bytes
+      rawInput: true
+      model: mnist
+    default_volume_mapping: true
+  volumes:
+  - isLibDir: false
+    name: training
+    clusterStorage: {{ .storage.value }}
+  - gitRepo:
+      repository: https://github.com/kuberlab/mnist-workflow
+    isLibDir: false
+    name: src
+    subPath: mnist-workflow/src
+  - isLibDir: true
+    name: lib
+    clusterStorage: {{ .storage.value }}
+  - isLibDir: false
+    datasetFS:
+      dataset: mnist
+      version: 1.0.0
+      workspace: kuberlab-demo
+    name: data
+  - isLibDir: false
+    mountPath: /notebooks
+    name: code
+    clusterStorage: {{ .storage.value }}

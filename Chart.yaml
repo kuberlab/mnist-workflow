@@ -1,0 +1,14 @@
+Description: Deep Mnist Workfow tutorial
+Engine: gotpl
+Home: http://kuberlab.com
+Icon: https://storage.googleapis.com/kuberlab-images/mnist.jpg
+Keywords:
+- kuberlab
+- tutorial
+- mnist
+Maintainers:
+- Email: agunin@kuberlab.com
+  Name: Gunin Alexander
+Name: mnist-workflow
+Version: 1.0.0
+Type: mlapp-v2
