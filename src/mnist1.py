@@ -147,6 +147,7 @@ def train():
             if i % 100 == 0 and i > 0:
                 delta = time.time() - start
                 logging.info('Step %d,  %.2f steps/s',i, 100.0/delta)
+                start = time.time()
 
         saver.save(sess,os.path.join(FLAGS.log_dir,"model.ckpt"))
         test_accuracy = accuracy.eval(feed_dict={
