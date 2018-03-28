@@ -27,7 +27,7 @@ tf.app.flags.DEFINE_string('build', '1' , 'Build for export')
 tf.app.flags.DEFINE_string('catalog_name', None , 'Catalog name')
 tf.app.flags.DEFINE_string('data_dir', '/tmp/mnist/data' , 'Data directory')
 tf.app.flags.DEFINE_string('log_dir', '/tmp/mnist/training', 'Log directory')
-tf.app.flags.DEFINE_string('source_url', 'https://storage.googleapis.com/cvdf-datasets/mnist/')
+tf.app.flags.DEFINE_string('source_url', 'https://storage.googleapis.com/cvdf-datasets/mnist/','source')
 tf.app.flags.DEFINE_integer('fully_neurons', 3, 'Number of fully connected neurons')
 tf.app.flags.DEFINE_float('drop_out', 0.5, 'Drop out')
 FLAGS = tf.app.flags.FLAGS
