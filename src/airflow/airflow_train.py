@@ -39,6 +39,7 @@ def run_task(*args, **kwargs):
         time.sleep(10)
         task = task.refresh()
         print(task)
+    return {'best':1}
 
 
 run_task_op = python.PythonOperator(
