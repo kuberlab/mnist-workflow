@@ -222,8 +222,6 @@ def train():
                     client.update_task_info({'train_accuracy': float(train_accuracy)})
                 logging.info('Step %d, training accuracy %g', i, train_accuracy)
 
-        for n in tf.get_default_graph().as_graph_def().node:
-            print(n.name)
         saver.save(sess, os.path.join(FLAGS.log_dir, "model.ckpt"))
         if not FLAGS.skip_mlboard:
             client.update_task_info({'checkpoint_path': FLAGS.log_dir})
