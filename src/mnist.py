@@ -89,7 +89,7 @@ def deepnn_builder(x_image, keep_prob):
     b_fc2 = bias_variable([10])
 
     y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
-    y_conv = tf.identity(y_conv,name=y_conv)
+    y_conv = tf.identity(y_conv,name='y_conv')
     return y_conv, keep_prob
 
 
