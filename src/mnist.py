@@ -17,31 +17,34 @@ from tensorflow.examples.tutorials.mnist import input_data
 import tensorflow as tf
 from mlboardclient.api import client
 
-
 logging.set_verbosity(logging.INFO)
 
 tf.app.flags.DEFINE_integer('training_iteration', 1000,
                             'Number of training iterations')
 tf.app.flags.DEFINE_integer('model_version', 1, 'Version number of the model')
-tf.app.flags.DEFINE_string('mode', 'train' , 'Running mode')
-tf.app.flags.DEFINE_string('build', '1' , 'Build for export')
-tf.app.flags.DEFINE_string('catalog_name', None , 'Catalog name')
-tf.app.flags.DEFINE_string('data_dir', os.environ.get('DATA_DIR') , 'Data directory')
-tf.app.flags.DEFINE_string('log_dir', os.environ.get('TRAINING_DIR')+'/'+os.environ.get('BUILD_ID'), 'Log directory')
-tf.app.flags.DEFINE_string('source_url', os.environ.get('DATA_DIR')+'/', 'Source url')
+tf.app.flags.DEFINE_string('mode', 'train', 'Running mode')
+tf.app.flags.DEFINE_string('build', '1', 'Build for export')
+tf.app.flags.DEFINE_string('catalog_name', None, 'Catalog name')
+tf.app.flags.DEFINE_string('data_dir', os.environ.get('DATA_DIR'), 'Data directory')
+tf.app.flags.DEFINE_string('log_dir', os.environ.get('TRAINING_DIR') + '/' + os.environ.get('BUILD_ID'),
+                           'Log directory')
+tf.app.flags.DEFINE_string('source_url', os.environ.get('DATA_DIR') + '/', 'Source url')
 tf.app.flags.DEFINE_integer('fully_neurons', 3, 'Number of fully connected neurons')
 tf.app.flags.DEFINE_float('drop_out', 0.5, 'Drop out')
+tf.app.flags.DEFINE_bool('skip_mlboard', False, 'Skip mlboardclient')
 FLAGS = tf.app.flags.FLAGS
+
 
 def deepnn(x):
     # Reshape to use within a convolutional neural net.
     # Last dimension is for "features" - there is only one here, since images are
     # grayscale -- it would be 3 for an RGB image, 4 for RGBA, etc.
     x_image = tf.reshape(x, [-1, 28, 28, 1])
+
     keep_prob = tf.placeholder(tf.float32,name="keep_prob")
     return deepnn_builder(x_image,keep_prob)
 
-def deepnn_builder(x_image,keep_prob):
+def deepnn_builder(x_image, keep_prob):
     """deepnn builds the graph for a deep net for classifying digits.
     Args:
       x: an input tensor with the dimensions (N_examples, 784), where 784 is the
@@ -70,11 +73,11 @@ def deepnn_builder(x_image,keep_prob):
 
     # Fully connected layer 1 -- after 2 round of downsampling, our 28x28 image
     # is down to 7x7x64 feature maps -- maps this to 1024 features.
-    n = FLAGS.fully_neurons*256+256
+    n = FLAGS.fully_neurons * 256 + 256
     W_fc1 = weight_variable([7 * 7 * 64, n])
     b_fc1 = bias_variable([n])
 
-    h_pool2_flat = tf.reshape(h_pool2, [-1, 7*7*64])
+    h_pool2_flat = tf.reshape(h_pool2, [-1, 7 * 7 * 64])
     h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
     # Dropout - controls the complexity of the model, prevents co-adaptation of
@@ -114,31 +117,39 @@ def bias_variable(shape):
 
 
 def main(_):
-    if FLAGS.mode=='export':
-        log_dir = os.environ.get('TRAINING_DIR')+'/'+FLAGS.build
-        client.update_task_info({'checkpoint_path':log_dir})
-        export_path = os.path.join(log_dir,str(FLAGS.model_version))
-        export(export_path,log_dir)
-        client.update_task_info({'model_path':export_path},task_name='train', build_id=FLAGS.build)
+    if FLAGS.mode == 'export':
+        log_dir = os.environ.get('TRAINING_DIR') + '/' + FLAGS.build
+        if not FLAGS.skip_mlboard:
+            client.update_task_info({'checkpoint_path': log_dir})
+        export_path = os.path.join(log_dir, str(FLAGS.model_version))
+        export(export_path, log_dir)
+        if not FLAGS.skip_mlboard:
+            client.update_task_info({'model_path': export_path}, task_name='train', build_id=FLAGS.build)
         if FLAGS.catalog_name is not None:
-            ml = client.Client()
-            ml.model_upload(FLAGS.catalog_name,'1.0.' + FLAGS.build,export_path)
+            if not FLAGS.skip_mlboard:
+                ml = client.Client()
+                ml.model_upload(FLAGS.catalog_name, '1.0.' + FLAGS.build, export_path)
     else:
         train()
 
-def export(export_path,log_dir):
-    model_path = os.path.join(log_dir,"model.ckpt")
-    logging.info('Exporting model to %s ...',export_path)
-    with tf.Graph().as_default(),tf.Session() as sess:
-        batch_image_str_placeholder = tf.placeholder(dtype=tf.string,
-                                                     shape=[None],
-                                                     name='encoded_image_string_tensor')
+
+def export(export_path, log_dir):
+    model_path = os.path.join(log_dir, "model.ckpt")
+    logging.info('Exporting model to %s ...', export_path)
+    with tf.Graph().as_default(), tf.Session() as sess:
+        batch_image_str_placeholder = tf.placeholder(
+            dtype=tf.string,
+            shape=[None],
+            name='encoded_image_string_tensor'
+        )
+
         def decode(encoded_image_string_tensor):
             image_tensor = tf.image.decode_image(encoded_image_string_tensor,
                                                  channels=1)
             image_tensor.set_shape((None, None, 1))
-            image_tensor = tf.image.resize_image_with_crop_or_pad(image_tensor,28,28)
+            image_tensor = tf.image.resize_image_with_crop_or_pad(image_tensor, 28, 28)
             return image_tensor
+
         x_image = tf.map_fn(
             decode,
             elems=batch_image_str_placeholder,
@@ -146,14 +157,14 @@ def export(export_path,log_dir):
             parallel_iterations=32,
             back_prop=False
         )
-        x_image = tf.to_float(x_image)/255.0
-        keep_prob = tf.constant(1,dtype=tf.float32)
-        y_conv,_ = deepnn_builder(x_image,keep_prob)
+        x_image = tf.to_float(x_image) / 255.0
+        keep_prob = tf.constant(1, dtype=tf.float32)
+        y_conv, _ = deepnn_builder(x_image, keep_prob)
         tensor_info_images = tf.saved_model.utils.build_tensor_info(batch_image_str_placeholder)
         tensor_info_results = tf.saved_model.utils.build_tensor_info(y_conv)
         saver = tf.train.Saver()
-        logging.info('Restoring model from %s ...',model_path)
-        saver.restore(sess,model_path)
+        logging.info('Restoring model from %s ...', model_path)
+        saver.restore(sess, model_path)
         prediction_signature = (
             tf.saved_model.signature_def_utils.build_signature_def(
                 inputs={'images': tensor_info_images},
@@ -167,8 +178,10 @@ def export(export_path,log_dir):
                     prediction_signature
             })
         builder.save()
-        client.update_task_info({'model_path':export_path})
-        logging.info("Model exported to %s",export_path)
+        if not FLAGS.skip_mlboard:
+            client.update_task_info({'model_path': export_path})
+        logging.info("Model exported to %s", export_path)
+
 
 def train():
     # Import data
@@ -177,12 +190,10 @@ def train():
 
     logging.info('Initing tf graph...')
     # Create the model
-    x = tf.placeholder(tf.float32, [None, 784],name="x")
+    x = tf.placeholder(tf.float32, [None, 784], name="x")
 
     # Define loss and optimizer
-    y_ = tf.placeholder(tf.float32, [None, 10],name="y_")
-
-
+    y_ = tf.placeholder(tf.float32, [None, 10], name="y_")
 
     # Build the graph for the deep net
     y_conv, keep_prob = deepnn(x)
@@ -202,24 +213,27 @@ def train():
         saver = tf.train.Saver()
         for i in range(FLAGS.training_iteration):
             batch = mnist.train.next_batch(50)
-            summary,_ = sess.run([merged,train_step],feed_dict={x: batch[0], y_: batch[1], keep_prob: FLAGS.drop_out})
+            summary, _ = sess.run([merged, train_step],
+                                  feed_dict={x: batch[0], y_: batch[1], keep_prob: FLAGS.drop_out})
             if i % 100 == 0:
                 train_accuracy = sess.run(accuracy, feed_dict={
                     x: batch[0], y_: batch[1], keep_prob: 1.0})
                 train_writer.add_summary(summary, i)
-                client.update_task_info({'train_accuracy':float(train_accuracy)})
-                logging.info('Step %d, training accuracy %g',i, train_accuracy)
+                if not FLAGS.skip_mlboard:
+                    client.update_task_info({'train_accuracy': float(train_accuracy)})
+                logging.info('Step %d, training accuracy %g', i, train_accuracy)
 
-        saver.save(sess,os.path.join(FLAGS.log_dir,"model.ckpt"))
-        client.update_task_info({'checkpoint_path':FLAGS.log_dir})
+        saver.save(sess, os.path.join(FLAGS.log_dir, "model.ckpt"))
+        if not FLAGS.skip_mlboard:
+            client.update_task_info({'checkpoint_path': FLAGS.log_dir})
         test_accuracy = accuracy.eval(feed_dict={
             x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
-        logging.info('Test accuracy %g',test_accuracy)
-        client.update_task_info({'test_accuracy':float(test_accuracy)})
+        logging.info('Test accuracy %g', test_accuracy)
+        if not FLAGS.skip_mlboard:
+            client.update_task_info({'test_accuracy': float(test_accuracy)})
 
-    if FLAGS.model_version>0:
-        export(os.path.join(FLAGS.log_dir,str(FLAGS.model_version)),FLAGS.log_dir)
-
+    if FLAGS.model_version > 0:
+        export(os.path.join(FLAGS.log_dir, str(FLAGS.model_version)), FLAGS.log_dir)
 
 
 if __name__ == '__main__':
