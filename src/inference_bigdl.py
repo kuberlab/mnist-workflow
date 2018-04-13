@@ -136,7 +136,7 @@ def main():
         model = args.model_path
 
     inputs = ['Placeholder']
-    outputs = ['Placeholder']
+    outputs = ['x']
 
     LOG.info('Loading model...')
     bigdl_model = layer.Model.load_tensorflow(
