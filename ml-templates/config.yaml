@@ -125,28 +125,6 @@ spec:
           memory: 1Gi
       volumes:
       - name: src
-   name: inference-bigdl
-    resources:
-    - name: worker
-      replicas: 1
-      restartPolicy: Never
-      maxRestartCount: 0
-      allowFail: true
-      images:
-        gpu: "kuberlab/pyspark:cpu-27-full"
-        cpu: "kuberlab/pyspark:cpu-27-full"
-      command: python inference_bigdl.py --ckpt-prefix=$TRAINING_DIR/1/model.ckpt --input examples/5.png
-      workdir: "$SRC_DIR"
-      resources:
-        accelerators:
-          gpu: 0
-        requests:
-          cpu: 100m
-          memory: 64Mi
-        limits:
-          cpu: 1000m
-          memory: 1Gi
-      default_volume_mapping: true
   uix:
   - name: jupyter
     displayName: Jupyter
