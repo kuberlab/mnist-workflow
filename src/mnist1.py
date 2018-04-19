@@ -1,12 +1,3 @@
-# ==============================================================================
-
-"""A deep MNIST classifier using convolutional layers.
-See extensive documentation at
-https://www.tensorflow.org/get_started/mnist/pros
-"""
-# Disable linter warnings to maintain consistency with tutorial.
-# pylint: disable=invalid-name
-# pylint: disable=g-bad-import-order
 
 from tensorflow import logging
 
@@ -37,7 +28,7 @@ def deepnn(x):
     # Last dimension is for "features" - there is only one here, since images are
     # grayscale -- it would be 3 for an RGB image, 4 for RGBA, etc.
     x_image = tf.reshape(x, [-1, 28, 28, 1])
-    keep_prob = tf.placeholder(tf.float32)
+    keep_prob = tf.placeholder(tf.float32,name="keep_prob")
     return deepnn_builder(x_image,keep_prob)
 
 def deepnn_builder(x_image,keep_prob):
@@ -85,6 +76,7 @@ def deepnn_builder(x_image,keep_prob):
     b_fc2 = bias_variable([10])
 
     y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+    y_conv = tf.identity(y_conv,name='y_conv')
     return y_conv, keep_prob
 
 

@@ -3,3 +3,12 @@ storage:
  wizard:
    name: "Storage Configuration"
    kind: cluster_storage
+
+
+dataset:
+ value: mnist
+ version: '1.0.0'
+ workspace: 'kuberlab-demo'
+ wizard:
+   name: "Mnist dataset configuration"
+   kind: dataset

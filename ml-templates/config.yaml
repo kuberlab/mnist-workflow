@@ -34,30 +34,6 @@ spec:
           memory: 1Gi
       volumes:
       - name: src
-  - name: images
-    resources:
-    - name: run
-      replicas: 1
-      restartPolicy: Never
-      maxRestartCount: 0
-      allowFail: true
-      images:
-        gpu: "kuberlab/tensorflow:gpu-36-1.5.0-full"
-        cpu: "kuberlab/tensorflow:cpu-36-1.5.0-full"
-      command: python extract.py --catalog_name mnist --version 1.0.0-test
-      workdir: "$SRC_DIR"
-      resources:
-        accelerators:
-          gpu: 0
-        requests:
-          cpu: 100m
-          memory: 64Mi
-        limits:
-          cpu: 1000m
-          memory: 1Gi
-      volumes:
-      - name: src
-      - name: data
   - name: train
     resources:
     - name: worker
@@ -205,11 +181,11 @@ spec:
     name: lib
     clusterStorage: {{ .storage.value }}
   - isLibDir: false
-    datasetFS:
-      dataset: mnist
-      version: 1.0.0
-      workspace: kuberlab-demo
     name: data
+    datasetFS:
+      workspace: {{ .dataset.workspace }}
+      dataset: {{ .dataset.value }}
+      version: {{ .dataset.version }}
   - isLibDir: false
     mountPath: /notebooks
     name: code

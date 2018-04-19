@@ -31,7 +31,6 @@ tf.app.flags.DEFINE_string('log_dir', os.environ.get('TRAINING_DIR') + '/' + os.
 tf.app.flags.DEFINE_string('source_url', os.environ.get('DATA_DIR') + '/', 'Source url')
 tf.app.flags.DEFINE_integer('fully_neurons', 3, 'Number of fully connected neurons')
 tf.app.flags.DEFINE_float('drop_out', 0.5, 'Drop out')
-tf.app.flags.DEFINE_bool('skip_mlboard', False, 'Skip mlboardclient')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -119,16 +118,13 @@ def bias_variable(shape):
 def main(_):
     if FLAGS.mode == 'export':
         log_dir = os.environ.get('TRAINING_DIR') + '/' + FLAGS.build
-        if not FLAGS.skip_mlboard:
-            client.update_task_info({'checkpoint_path': log_dir})
+        client.update_task_info({'checkpoint_path': log_dir})
         export_path = os.path.join(log_dir, str(FLAGS.model_version))
         export(export_path, log_dir)
-        if not FLAGS.skip_mlboard:
-            client.update_task_info({'model_path': export_path}, task_name='train', build_id=FLAGS.build)
+        client.update_task_info({'model_path': export_path}, task_name='train', build_id=FLAGS.build)
         if FLAGS.catalog_name is not None:
-            if not FLAGS.skip_mlboard:
-                ml = client.Client()
-                ml.model_upload(FLAGS.catalog_name, '1.0.' + FLAGS.build, export_path)
+            ml = client.Client()
+            ml.model_upload(FLAGS.catalog_name, '1.0.' + FLAGS.build, export_path)
     else:
         train()
 
@@ -178,8 +174,7 @@ def export(export_path, log_dir):
                     prediction_signature
             })
         builder.save()
-        if not FLAGS.skip_mlboard:
-            client.update_task_info({'model_path': export_path})
+        client.update_task_info({'model_path': export_path})
         logging.info("Model exported to %s", export_path)
 
 
@@ -219,18 +214,15 @@ def train():
                 train_accuracy = sess.run(accuracy, feed_dict={
                     x: batch[0], y_: batch[1], keep_prob: 1.0})
                 train_writer.add_summary(summary, i)
-                if not FLAGS.skip_mlboard:
-                    client.update_task_info({'train_accuracy': float(train_accuracy)})
+                client.update_task_info({'train_accuracy': float(train_accuracy)})
                 logging.info('Step %d, training accuracy %g', i, train_accuracy)
 
         saver.save(sess, os.path.join(FLAGS.log_dir, "model.ckpt"))
-        if not FLAGS.skip_mlboard:
-            client.update_task_info({'checkpoint_path': FLAGS.log_dir})
+        client.update_task_info({'checkpoint_path': FLAGS.log_dir})
         test_accuracy = accuracy.eval(feed_dict={
             x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
         logging.info('Test accuracy %g', test_accuracy)
-        if not FLAGS.skip_mlboard:
-            client.update_task_info({'test_accuracy': float(test_accuracy)})
+        client.update_task_info({'test_accuracy': float(test_accuracy)})
 
     if FLAGS.model_version > 0:
         export(os.path.join(FLAGS.log_dir, str(FLAGS.model_version)), FLAGS.log_dir)
