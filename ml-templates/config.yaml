@@ -48,13 +48,13 @@ spec:
       workdir: "$SRC_DIR"
       resources:
         accelerators:
-          gpu: 1
+          gpu: 0
         requests:
           cpu: 100m
           memory: 64Mi
         limits:
           cpu: 2000m
-          memory: 4Gi
+          memory: 8Gi
       default_volume_mapping: true
   - name: export
     resources:
