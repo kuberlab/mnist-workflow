@@ -2,4 +2,4 @@
 
 * Upload Dataset
 * Build model
-* Build model using defferent hyperparams and compare it
+* Build model using hyperparameters optimization and validate results
